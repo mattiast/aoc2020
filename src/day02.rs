@@ -27,6 +27,20 @@ pub fn part1() -> io::Result<usize> {
     for line in reader.lines() {
         let s = line.unwrap();
         let (_, r) = parsing::parse_password(&s).unwrap();
+        if check(r) {
+            x += 1;
+        }
+    }
+    Ok(x)
+}
+pub fn part2() -> io::Result<usize> {
+    let file = File::open("data/day02.txt")?;
+    let reader = BufReader::new(file);
+
+    let mut x = 0usize;
+    for line in reader.lines() {
+        let s = line.unwrap();
+        let (_, r) = parsing::parse_password(&s).unwrap();
         if check2(r) {
             x += 1;
         }
