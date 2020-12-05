@@ -9,12 +9,12 @@ pub struct Password<'a> {
     passu: &'a str,
 }
 
-fn check<'a>(p: Password<'a>) -> bool {
+fn check(p: Password) -> bool {
     let n_jutska = p.passu.chars().filter(|&c| c == p.c).count();
     n_jutska <= p.hi && n_jutska >= p.lo
 }
 
-fn check2<'a>(p: Password<'a>) -> bool {
+fn check2(p: Password) -> bool {
     let charvec: Vec<_> = p.passu.chars().collect();
     (charvec[p.lo - 1] == p.c) ^ (charvec[p.hi - 1] == p.c)
 }
