@@ -1,6 +1,5 @@
-use std::fs::File;
+use std::collections::{BTreeSet, HashMap, HashSet};
 use std::io;
-use std::io::{prelude::BufRead, BufReader};
 
 #[derive(Debug, PartialEq)]
 pub struct Rule<'a> {
@@ -9,17 +8,62 @@ pub struct Rule<'a> {
 }
 
 pub fn part1() -> io::Result<usize> {
-    let file = File::open("data/day07.txt")?;
-    let reader = BufReader::new(file);
+    let s = std::fs::read_to_string("data/day07.txt")?;
 
-    let mut x = 0usize;
-    for line in reader.lines() {
-        let s = line.unwrap();
-        let (_, r) = parsing::parse_line(&s).unwrap();
-        println!("{:?}", r);
-        x += 1;
+    let (_, rules) = parsing::parse_file(&s).unwrap();
+
+    let mut h: HashMap<&str, HashSet<&str>> = HashMap::new();
+    for r in rules {
+        for (s, _) in r.others {
+            let e = h.entry(s).or_default();
+            e.insert(r.color);
+        }
     }
-    Ok(x)
+
+    let mut seen: BTreeSet<&str> = ["shiny gold"].iter().cloned().collect();
+    let mut visited: HashSet<&str> = HashSet::new();
+    while let Some(&x) = seen.iter().next() {
+        seen.remove(x);
+        if visited.contains(x) {
+            continue;
+        }
+        visited.insert(x);
+        if let Some(s) = h.get(x) {
+            for y in s.iter() {
+                seen.insert(y);
+            }
+        }
+    }
+    Ok(visited.len() - 1)
+}
+
+pub fn part2() -> io::Result<usize> {
+    let s = std::fs::read_to_string("data/day07.txt")?;
+
+    let (_, rules) = parsing::parse_file(&s).unwrap();
+
+    let h: HashMap<_, _> = rules.into_iter().map(|r| (r.color, r.others)).collect();
+
+    let mut cache: HashMap<&str, usize> = HashMap::new();
+    Ok(calculate("shiny gold", &h, &mut cache) - 1)
+}
+
+fn calculate<'a>(
+    color: &'a str,
+    rules: &HashMap<&'a str, Vec<(&'a str, usize)>>,
+    cache: &mut HashMap<&'a str, usize>,
+) -> usize {
+    if let Some(x) = cache.get(color) {
+        return *x;
+    }
+    let contents = &rules[color];
+    let x: usize = contents
+        .iter()
+        .map(|(c, n)| n * calculate(c, rules, cache))
+        .sum();
+    let x = x + 1;
+    cache.insert(color, x);
+    x
 }
 
 mod parsing {
@@ -60,6 +104,9 @@ mod parsing {
         let (input, others) = bag_counts(input)?;
         let (input, _) = tag(".")(input)?;
         Ok((input, Rule { color, others }))
+    }
+    pub fn parse_file<'a>(input: &'a str) -> IResult<&'a str, Vec<Rule<'a>>> {
+        separated_list1(tag("\n"), parse_line)(input)
     }
 
     #[test]
