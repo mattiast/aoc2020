@@ -1,5 +1,5 @@
-use std::fs::File;
 use std::io::{self, prelude::BufRead, BufReader};
+use std::{collections::HashSet, fs::File};
 
 #[derive(Debug)]
 enum Op {
@@ -30,7 +30,31 @@ fn read_input() -> io::Result<Vec<(Op, i32)>> {
 pub fn part1() -> io::Result<i64> {
     let v = read_input()?;
     println!("{:?}", v);
-    Ok(4)
+
+    let mut acc: i32 = 0;
+    let mut pc: usize = 0;
+
+    let mut h: HashSet<usize> = HashSet::new();
+
+    loop {
+        h.insert(pc);
+        println!("{} {}", pc, acc);
+        match &v[pc] {
+            (Op::Nop, _) => {
+                pc += 1;
+            }
+            (Op::Acc, x) => {
+                pc += 1;
+                acc += x;
+            }
+            (Op::Jmp, x) => {
+                pc = (pc as i32 + x) as usize;
+            }
+        }
+        if h.contains(&pc) {
+            return Ok(acc as i64);
+        }
+    }
 }
 
 pub fn part2() -> io::Result<i64> {
