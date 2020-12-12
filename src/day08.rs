@@ -1,4 +1,8 @@
-use std::io::{self, prelude::BufRead, BufReader};
+use std::{
+    cmp::Reverse,
+    collections::BinaryHeap,
+    io::{self, prelude::BufRead, BufReader},
+};
 use std::{collections::HashSet, fs::File};
 
 #[derive(Debug)]
@@ -57,6 +61,66 @@ pub fn part1() -> io::Result<i64> {
     }
 }
 
+fn targets(i: usize, v: &[(Op, i32)]) -> Vec<(usize, i32, u32)> {
+    if i == 654 {
+        return vec![];
+    }
+    match v[i] {
+        (Op::Acc, x) => vec![(i + 1, x, 0)],
+        (Op::Jmp, j) => {
+            let mut ts = Vec::with_capacity(2);
+            let x = i as i32 + j;
+            if x >= 0 && x <= 654 {
+                ts.push((x as usize, 0, 0));
+            }
+            if j != 1 {
+                ts.push((i + 1, 0, 1));
+            }
+            ts
+        }
+        (Op::Nop, j) => {
+            let mut ts = Vec::with_capacity(2);
+            ts.push((i + 1, 0, 0));
+
+            let x = i as i32 + j;
+            if x >= 0 && x <= 654 && x != (i + 1) as i32 {
+                ts.push((x as usize, 0, 1));
+            }
+            ts
+        }
+    }
+}
+
 pub fn part2() -> io::Result<i64> {
-    todo!()
+    let v = read_input()?;
+
+    let mut visited: HashSet<usize> = HashSet::new();
+    let mut seen: BinaryHeap<(Reverse<u32>, i32, usize)> = BinaryHeap::new();
+    seen.push((Reverse(0u32), 0i32, 0usize));
+
+    while let Some((Reverse(d), acc, i)) = seen.pop() {
+        if d >= 2 {
+            break;
+        }
+        if i == 654 {
+            return Ok(acc as i64);
+        }
+        if visited.contains(&i) {
+            continue;
+        }
+        visited.insert(i);
+        let ts = targets(i, &v);
+        for (j, x, dd) in ts {
+            seen.push((Reverse(d + dd), acc + x, j));
+        }
+    }
+
+    Ok(4)
+}
+
+#[test]
+fn test_pair_ord() {
+    let x: (i32, usize) = (-1, 3);
+    let y: (i32, usize) = (0, 1);
+    assert!(y > x);
 }
