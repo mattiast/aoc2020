@@ -5,6 +5,7 @@ mod day04;
 mod day07;
 mod day08;
 mod day09;
+mod day12;
 
 use structopt::StructOpt;
 
@@ -38,6 +39,10 @@ enum Opt {
         #[structopt(long)]
         toka: bool,
     },
+    Day12 {
+        #[structopt(long)]
+        toka: bool,
+    },
 }
 
 fn main() -> std::io::Result<()> {
@@ -57,6 +62,8 @@ fn main() -> std::io::Result<()> {
         Opt::Day8 { toka: true } => day08::part2()? as i64,
         Opt::Day9 { toka: false } => day09::part1()?,
         Opt::Day9 { toka: true } => day09::part2()?,
+        Opt::Day12 { toka: false } => day12::part1()?,
+        Opt::Day12 { toka: true } => day12::part2()?,
     };
     println!("{}", x);
     Ok(())
