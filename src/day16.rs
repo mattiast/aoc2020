@@ -15,11 +15,38 @@ pub fn part1() -> io::Result<i64> {
     Ok(sima as i64)
 }
 pub fn part2() -> io::Result<i64> {
-    todo!()
+    let s = std::fs::read_to_string("data/day16.txt")?;
+
+    let (_, stuff) = parsing::parse_file(&s).unwrap();
+    // poss[i][j] = position i can be field number j
+    let mut poss = [[true; 20]; 20];
+    for ticket in stuff.nearby_tickets.iter() {
+        if !is_valid_ticket(ticket, &stuff) {
+            continue;
+        }
+        for (i, x) in ticket.iter().enumerate() {
+            for (j, tavara) in stuff.fields.iter().enumerate() {
+                if !is_valid(tavara, *x) {
+                    poss[i][j] = false;
+                }
+            }
+        }
+    }
+    for row in poss.iter() {
+        let cs = row.iter().map(|&b| if b { '#' } else { ' ' });
+        let s: String = cs.collect();
+        println!("{}", s);
+    }
+    Ok(4)
 }
 
 fn is_valid(t: &Tavara, x: usize) -> bool {
     (x >= t.r1.0 && x <= t.r1.1) || (x >= t.r2.0 && x <= t.r2.1)
+}
+fn is_valid_ticket(ticket: &Vec<usize>, stuff: &Stuff) -> bool {
+    ticket
+        .iter()
+        .all(|&x| stuff.fields.iter().any(|tavara| is_valid(tavara, x)))
 }
 
 #[derive(Debug, PartialEq)]
