@@ -32,12 +32,65 @@ pub fn part2() -> io::Result<i64> {
             }
         }
     }
-    for row in poss.iter() {
-        let cs = row.iter().map(|&b| if b { '#' } else { ' ' });
-        let s: String = cs.collect();
-        println!("{}", s);
+    while let Some(_) = reduce_poss(&mut poss) {}
+    if false {
+        for row in poss.iter() {
+            let cs = row.iter().map(|&b| if b { '#' } else { ' ' });
+            let s: String = cs.collect();
+            println!("{}", s);
+        }
     }
-    Ok(4)
+    let solution = find_solution(&poss);
+    let ret = solution[0..6]
+        .iter()
+        .map(|&i| stuff.my_ticket[i])
+        .product::<usize>();
+    Ok(ret as i64)
+}
+
+fn reduce_poss(poss: &mut [[bool; 20]; 20]) -> Option<()> {
+    let i = find_row(&poss)?;
+    let j = poss[i]
+        .iter()
+        .enumerate()
+        .filter(|(_, &x)| x)
+        .next()
+        .unwrap()
+        .0;
+    for ii in 0..20 {
+        if ii != i {
+            poss[ii][j] = false;
+        }
+    }
+
+    Some(())
+}
+
+fn find_row(poss: &[[bool; 20]; 20]) -> Option<usize> {
+    for (i, row) in poss.iter().enumerate() {
+        let c = row.iter().filter(|&&x| x).count();
+        if c == 1 {
+            let j = row.iter().enumerate().filter(|(_, &x)| x).next().unwrap().0;
+            if (0..20).filter(|&ii| poss[ii][j]).count() >= 2 {
+                return Some(i);
+            }
+        }
+    }
+    None
+}
+
+fn find_solution(poss: &[[bool; 20]; 20]) -> [usize; 20] {
+    let mut solution = [0; 20];
+
+    for (i, row) in poss.iter().enumerate() {
+        for (j, &x) in row.iter().enumerate() {
+            if x {
+                solution[j] = i;
+            }
+        }
+    }
+
+    solution
 }
 
 fn is_valid(t: &Tavara, x: usize) -> bool {
