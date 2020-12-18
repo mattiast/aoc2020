@@ -74,10 +74,7 @@ enum Opt {
         #[structopt(long)]
         toka: bool,
     },
-    Day18 {
-        #[structopt(long)]
-        toka: bool,
-    },
+    Day18,
 }
 
 fn main() -> std::io::Result<()> {
@@ -110,8 +107,7 @@ fn main() -> std::io::Result<()> {
         Opt::Day16 { toka: true } => day16::part2()?,
         Opt::Day17 { toka: false } => day17::part1()?,
         Opt::Day17 { toka: true } => day17::part2()?,
-        Opt::Day18 { toka: false } => day18::part1()?,
-        Opt::Day18 { toka: true } => day18::part2()?,
+        Opt::Day18 => day18::part1()?,
     };
     println!("{}", x);
     Ok(())
