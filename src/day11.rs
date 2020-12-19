@@ -38,6 +38,25 @@ fn act(i: (usize, usize), di: (isize, isize)) -> Option<(usize, usize)> {
     Some((j0 as usize, j1 as usize))
 }
 
+fn see_taken(
+    i: (usize, usize),
+    di: (isize, isize),
+    a: &Array2<bool>,
+    seats: &Array2<bool>,
+) -> bool {
+    let mut j = i;
+    while let Some(j1) = act(j, di) {
+        j = j1;
+        if a[j] {
+            return true;
+        }
+        if seats[j] {
+            return false;
+        }
+    }
+    return false;
+}
+
 fn step(a: &Array2<bool>, seats: &Array2<bool>) -> Array2<bool> {
     let mut b = a.clone();
     for (i, x) in b.indexed_iter_mut() {
@@ -47,17 +66,15 @@ fn step(a: &Array2<bool>, seats: &Array2<bool>) -> Array2<bool> {
         let mut count = 0usize;
 
         for di in directions() {
-            if let Some(j) = act(i, di) {
-                if a[j] {
-                    count += 1;
-                }
+            if see_taken(i, di, a, seats) {
+                count += 1;
             }
         }
 
         if !a[i] && count == 0 {
             *x = true;
         }
-        if a[i] && count >= 4 {
+        if a[i] && count >= 5 {
             *x = false;
         }
     }
