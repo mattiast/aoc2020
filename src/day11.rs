@@ -18,43 +18,46 @@ pub fn read_input() -> io::Result<Array2<bool>> {
     Ok(a)
 }
 
+fn directions() -> Vec<(isize, isize)> {
+    vec![
+        (1, 1),
+        (1, 0),
+        (1, -1),
+        (0, 1),
+        (0, -1),
+        (-1, 1),
+        (-1, 0),
+        (-1, -1),
+    ]
+}
+
+fn act(i: (usize, usize), di: (isize, isize)) -> Option<(usize, usize)> {
+    let j0 = Some((i.0 as isize) + di.0).filter(|&j| j >= 0 && j < 95)?;
+    let j1 = Some((i.1 as isize) + di.1).filter(|&j| j >= 0 && j < 98)?;
+
+    Some((j0 as usize, j1 as usize))
+}
+
 fn step(a: &Array2<bool>, seats: &Array2<bool>) -> Array2<bool> {
     let mut b = a.clone();
-    for ((i, j), x) in b.indexed_iter_mut() {
-        if !seats[(i, j)] {
+    for (i, x) in b.indexed_iter_mut() {
+        if !seats[i] {
             continue;
         }
         let mut count = 0usize;
 
-        if i > 0 && j > 0 && a[(i - 1, j - 1)] {
-            count += 1;
-        }
-        if i > 0 && a[(i - 1, j)] {
-            count += 1;
-        }
-        if j > 0 && a[(i, j - 1)] {
-            count += 1;
-        }
-        if i < 94 && j < 97 && a[(i + 1, j + 1)] {
-            count += 1;
-        }
-        if i < 94 && a[(i + 1, j)] {
-            count += 1;
-        }
-        if j < 97 && a[(i, j + 1)] {
-            count += 1;
-        }
-        if i < 94 && j > 0 && a[(i + 1, j - 1)] {
-            count += 1;
-        }
-        if i > 0 && j < 97 && a[(i - 1, j + 1)] {
-            count += 1;
+        for di in directions() {
+            if let Some(j) = act(i, di) {
+                if a[j] {
+                    count += 1;
+                }
+            }
         }
 
-        if !a[(i, j)] && count == 0 {
+        if !a[i] && count == 0 {
             *x = true;
         }
-        if a[(i, j)] && count >= 4 {
+        if a[i] && count >= 4 {
             *x = false;
         }
     }
