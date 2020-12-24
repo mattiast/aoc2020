@@ -15,6 +15,7 @@ mod day17;
 mod day18;
 mod day19;
 mod day22;
+mod day24;
 
 use color_eyre::Result;
 use structopt::StructOpt;
@@ -86,6 +87,10 @@ enum Opt {
         #[structopt(long)]
         toka: bool,
     },
+    Day24 {
+        #[structopt(long)]
+        toka: bool,
+    },
 }
 
 fn main() -> Result<()> {
@@ -124,6 +129,8 @@ fn main() -> Result<()> {
         Opt::Day19 { toka: true } => day19::part2()?,
         Opt::Day22 { toka: false } => day22::part1()?,
         Opt::Day22 { toka: true } => day22::part2()?,
+        Opt::Day24 { toka: false } => day24::part1()?,
+        Opt::Day24 { toka: true } => day24::part2()?,
     };
     println!("{}", x);
     Ok(())
