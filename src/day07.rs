@@ -73,40 +73,40 @@ mod parsing {
         bytes::complete::{tag, take_until, take_while1},
         combinator::map_res,
         multi::separated_list1,
-        IResult,
+        IResult, Parser,
     };
     fn parse_number(input: &str) -> IResult<&str, usize> {
         map_res(take_while1(|c: char| c.is_ascii_digit()), |input: &str| {
             input.parse()
-        })(input)
+        }).parse(input)
     }
     fn no_bags<'a>(input: &'a str) -> IResult<&'a str, Vec<(&'a str, usize)>> {
-        let (input, _) = tag("no other bags")(input)?;
+        let (input, _) = tag("no other bags").parse(input)?;
         Ok((input, vec![]))
     }
     fn bag_count<'a>(input: &'a str) -> IResult<&'a str, (&'a str, usize)> {
         let (input, n) = parse_number(input)?;
-        let (input, _) = tag(" ")(input)?;
-        let (input, color) = take_until(" bag")(input)?;
-        let bag = if n == 1 { tag(" bag") } else { tag(" bags") };
-        let (input, _) = bag(input)?;
+        let (input, _) = tag(" ").parse(input)?;
+        let (input, color) = take_until(" bag").parse(input)?;
+        let mut bag = if n == 1 { tag(" bag") } else { tag(" bags") };
+        let (input, _) = bag.parse(input)?;
         Ok((input, (color, n)))
     }
     fn bag_counts1<'a>(input: &'a str) -> IResult<&'a str, Vec<(&'a str, usize)>> {
-        separated_list1(tag(", "), bag_count)(input)
+        separated_list1(tag(", "), bag_count).parse(input)
     }
     fn bag_counts<'a>(input: &'a str) -> IResult<&'a str, Vec<(&'a str, usize)>> {
-        alt((no_bags, bag_counts1))(input)
+        alt((no_bags, bag_counts1)).parse(input)
     }
     pub fn parse_line<'a>(input: &'a str) -> IResult<&'a str, Rule<'a>> {
-        let (input, color) = take_until(" bags contain ")(input)?;
-        let (input, _) = tag(" bags contain ")(input)?;
+        let (input, color) = take_until(" bags contain ").parse(input)?;
+        let (input, _) = tag(" bags contain ").parse(input)?;
         let (input, others) = bag_counts(input)?;
-        let (input, _) = tag(".")(input)?;
+        let (input, _) = tag(".").parse(input)?;
         Ok((input, Rule { color, others }))
     }
     pub fn parse_file<'a>(input: &'a str) -> IResult<&'a str, Vec<Rule<'a>>> {
-        separated_list1(tag("\n"), parse_line)(input)
+        separated_list1(tag("\n"), parse_line).parse(input)
     }
 
     #[test]

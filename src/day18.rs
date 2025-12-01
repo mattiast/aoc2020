@@ -17,47 +17,31 @@ mod parsing {
     use nom::{
         branch::alt,
         bytes::complete::{tag, take_while1},
-        character::complete::one_of,
         combinator::map_res,
         multi::separated_list1,
-        IResult,
+        IResult, Parser,
     };
     fn parse_number(input: &str) -> IResult<&str, i64> {
         map_res(take_while1(|c: char| c.is_ascii_digit()), |input: &str| {
             input.parse()
-        })(input)
+        }).parse(input)
     }
     fn parens<'a>(input: &'a str) -> IResult<&'a str, i64> {
-        let (input, _) = tag("(")(input)?;
+        let (input, _) = tag("(").parse(input)?;
         let (input, n) = expr(input)?;
-        let (input, _) = tag(")")(input)?;
+        let (input, _) = tag(")").parse(input)?;
         Ok((input, n))
     }
     pub fn term<'a>(input: &'a str) -> IResult<&'a str, i64> {
-        alt((parens, parse_number))(input)
-    }
-    enum Op {
-        Plus,
-        Times,
-    }
-
-    fn operator<'a>(input: &'a str) -> IResult<&'a str, Op> {
-        let (input, _) = tag(" ")(input)?;
-        let (input, opc) = one_of("*+")(input)?;
-        let (input, _) = tag(" ")(input)?;
-        match opc {
-            '+' => Ok((input, Op::Plus)),
-            '*' => Ok((input, Op::Times)),
-            _ => panic!("wrong op char"),
-        }
+        alt((parens, parse_number)).parse(input)
     }
     pub fn term1<'a>(input: &'a str) -> IResult<&'a str, i64> {
-        let (input, v) = separated_list1(tag(" + "), term)(input)?;
+        let (input, v) = separated_list1(tag(" + "), term).parse(input)?;
 
         Ok((input, v.iter().sum()))
     }
     pub fn expr<'a>(input: &'a str) -> IResult<&'a str, i64> {
-        let (input, v) = separated_list1(tag(" * "), term1)(input)?;
+        let (input, v) = separated_list1(tag(" * "), term1).parse(input)?;
 
         Ok((input, v.iter().product()))
     }

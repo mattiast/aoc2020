@@ -3,7 +3,7 @@ use std::fs::File;
 use std::io::{self, prelude::BufRead, BufReader};
 
 #[derive(Debug, PartialEq, Clone, Copy)]
-struct Mask {
+pub struct Mask {
     xmask: u64,
     value: u64,
 }
@@ -61,15 +61,15 @@ mod parsing {
         character::complete::satisfy,
         combinator::map_res,
         multi::many_m_n,
-        IResult,
+        IResult, Parser,
     };
     fn parse_number(input: &str) -> IResult<&str, u64> {
         map_res(take_while1(|c: char| c.is_ascii_digit()), |input: &str| {
             input.parse()
-        })(input)
+        }).parse(input)
     }
     fn xbit(input: &str) -> IResult<&str, Option<bool>> {
-        let (input, x) = satisfy(|c| c == 'X' || c == '0' || c == '1')(input)?;
+        let (input, x) = satisfy(|c| c == 'X' || c == '0' || c == '1').parse(input)?;
         let ret = match x {
             'X' => None,
             '0' => Some(false),
@@ -79,7 +79,7 @@ mod parsing {
         Ok((input, ret))
     }
     fn mask<'a>(input: &'a str) -> IResult<&'a str, Mask> {
-        let (input, xbits) = many_m_n(36, 36, xbit)(input)?;
+        let (input, xbits) = many_m_n(36, 36, xbit).parse(input)?;
         let mut xmask = 0u64;
         let mut value = 0u64;
         for xbit in xbits {
@@ -98,19 +98,19 @@ mod parsing {
         Ok((input, Mask { xmask, value }))
     }
     fn set_mask<'a>(input: &'a str) -> IResult<&'a str, Statement> {
-        let (input, _) = tag("mask = ")(input)?;
+        let (input, _) = tag("mask = ").parse(input)?;
         let (input, m) = mask(input)?;
         Ok((input, Statement::Mask(m)))
     }
     fn set_mem<'a>(input: &'a str) -> IResult<&'a str, Statement> {
-        let (input, _) = tag("mem[")(input)?;
+        let (input, _) = tag("mem[").parse(input)?;
         let (input, addr) = parse_number(input)?;
-        let (input, _) = tag("] = ")(input)?;
+        let (input, _) = tag("] = ").parse(input)?;
         let (input, value) = parse_number(input)?;
         Ok((input, Statement::Mem { addr, value }))
     }
     pub fn parse_line<'a>(input: &'a str) -> IResult<&'a str, Statement> {
-        alt((set_mask, set_mem))(input)
+        alt((set_mask, set_mem)).parse(input)
     }
 
     #[test]

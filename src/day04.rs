@@ -59,22 +59,20 @@ pub enum Field {
 mod parsing {
     use super::{Ecl, Field, HUnit};
     use nom::{
-        alt,
-        bytes::complete::{tag, take, take_while1},
+        branch::alt,
+        bytes::complete::{tag, take, take_while1, take_while_m_n},
         character::complete::satisfy,
-        combinator::verify,
-        do_parse,
+        combinator::{map_res, verify},
         multi::separated_list1,
-        named, tag, take, take_while1, verify, IResult,
+        IResult, Parser,
     };
-    use nom::{combinator::map_res, take_while_m_n};
     fn my_err() -> nom::Err<nom::error::Error<&'static str>> {
         nom::Err::Failure(nom::error::Error::new("foo", nom::error::ErrorKind::Alpha))
     }
     fn parse_number(input: &str) -> IResult<&str, usize> {
         map_res(take_while1(|c: char| c.is_ascii_digit()), |input: &str| {
             input.parse()
-        })(input)
+        }).parse(input)
     }
     // byr (Birth Year) - four digits; at least 1920 and at most 2002.
     // iyr (Issue Year) - four digits; at least 2010 and at most 2020.
@@ -87,19 +85,53 @@ mod parsing {
     // pid (Passport ID) - a nine-digit number, including leading zeroes.
     // cid (Country ID) - ignored, missing or not.
 
-    named!(byr<&str, Field>, do_parse!(tag!("byr:") >> n: verify!(parse_number, |&n| n >= 1920 && n <= 2002) >> (Field::Byr(n as u32))));
-    named!(iyr<&str, Field>, do_parse!(tag!("iyr:") >> n: verify!(parse_number, |&n| n >= 2010 && n <= 2020) >> (Field::Iyr(n as u32))));
-    named!(eyr<&str, Field>, do_parse!(tag!("eyr:") >> n: verify!(parse_number, |&n| n >= 2020 && n <= 2030) >> (Field::Eyr(n as u32))));
-    named!(hgt1<&str, (usize, &str)>, do_parse!(tag!("hgt:") >> n: parse_number >> u: alt!(tag!("cm") | tag!("in")) >> (n, u)));
-    named!(hcl1<&str, &str>, do_parse!(tag!("hcl:") >> tag!("#") >> n: take_while_m_n!(6,6,|c:char| c.is_ascii_hexdigit()) >> (n)));
-    named!(ecl1<&str, &str>, do_parse!(tag!("ecl:") >> c: take!(3) >> (c)));
-    named!(pid<&str, Field>, do_parse!(tag!("pid:") >> n: parse_number >> (Field::Pid(n as u64))));
-    named!(cid<&str, Field>, do_parse!(tag!("cid:") >> take_while1!(|c: char| !c.is_whitespace()) >> (Field::Cid)));
+    fn byr(input: &str) -> IResult<&str, Field> {
+        let (input, _) = tag("byr:").parse(input)?;
+        let (input, n) = verify(parse_number, |&n| n >= 1920 && n <= 2002).parse(input)?;
+        Ok((input, Field::Byr(n as u32)))
+    }
+    fn iyr(input: &str) -> IResult<&str, Field> {
+        let (input, _) = tag("iyr:").parse(input)?;
+        let (input, n) = verify(parse_number, |&n| n >= 2010 && n <= 2020).parse(input)?;
+        Ok((input, Field::Iyr(n as u32)))
+    }
+    fn eyr(input: &str) -> IResult<&str, Field> {
+        let (input, _) = tag("eyr:").parse(input)?;
+        let (input, n) = verify(parse_number, |&n| n >= 2020 && n <= 2030).parse(input)?;
+        Ok((input, Field::Eyr(n as u32)))
+    }
+    fn hgt1(input: &str) -> IResult<&str, (usize, &str)> {
+        let (input, _) = tag("hgt:").parse(input)?;
+        let (input, n) = parse_number(input)?;
+        let (input, u) = alt((tag("cm"), tag("in"))).parse(input)?;
+        Ok((input, (n, u)))
+    }
+    fn hcl1(input: &str) -> IResult<&str, &str> {
+        let (input, _) = tag("hcl:").parse(input)?;
+        let (input, _) = tag("#").parse(input)?;
+        let (input, n) = take_while_m_n(6, 6, |c: char| c.is_ascii_hexdigit()).parse(input)?;
+        Ok((input, n))
+    }
+    fn ecl1(input: &str) -> IResult<&str, &str> {
+        let (input, _) = tag("ecl:").parse(input)?;
+        let (input, c) = take(3usize).parse(input)?;
+        Ok((input, c))
+    }
+    fn pid(input: &str) -> IResult<&str, Field> {
+        let (input, _) = tag("pid:").parse(input)?;
+        let (input, n) = parse_number(input)?;
+        Ok((input, Field::Pid(n as u64)))
+    }
+    fn cid(input: &str) -> IResult<&str, Field> {
+        let (input, _) = tag("cid:").parse(input)?;
+        let (input, _) = take_while1(|c: char| !c.is_whitespace()).parse(input)?;
+        Ok((input, Field::Cid))
+    }
 
     fn hgt(input: &str) -> IResult<&str, Field> {
         let (input, (x, u)) = verify(hgt1, |(x, u)| {
             (u == &"cm" && *x >= 150 && *x <= 193) || (u == &"in" && *x >= 59 && *x <= 76)
-        })(input)?;
+        }).parse(input)?;
 
         match u {
             "in" => Ok((input, Field::Hgt(x as u32, HUnit::In))),
@@ -129,30 +161,32 @@ mod parsing {
         Ok((input, Field::Ecl(c)))
     }
 
-    named!(parse_field2<&str, Field>, alt!(byr | iyr | eyr | pid | cid | hgt | hcl | ecl));
+    fn parse_field2(input: &str) -> IResult<&str, Field> {
+        alt((byr, iyr, eyr, pid, cid, hgt, hcl, ecl)).parse(input)
+    }
 
     pub fn parse_field<'a>(input: &'a str) -> IResult<&'a str, &'a str> {
-        let (input, field) = take(3usize)(input)?;
-        let (input, _) = tag(":")(input)?;
-        let (input, _content) = take_while1(|c: char| !c.is_whitespace())(input)?;
+        let (input, field) = take(3usize).parse(input)?;
+        let (input, _) = tag(":").parse(input)?;
+        let (input, _content) = take_while1(|c: char| !c.is_whitespace()).parse(input)?;
         Ok((input, field))
     }
     pub fn parse_passport<'a>(input: &'a str) -> IResult<&'a str, Vec<&'a str>> {
-        let (input, lo) = separated_list1(satisfy(|c| c.is_whitespace()), parse_field)(input)?;
+        let (input, lo) = separated_list1(satisfy(|c| c.is_whitespace()), parse_field).parse(input)?;
         Ok((input, lo))
     }
 
     pub fn parse_passports<'a>(input: &'a str) -> IResult<&'a str, Vec<Vec<&'a str>>> {
-        let (input, lo) = separated_list1(tag("\n\n"), parse_passport)(input)?;
+        let (input, lo) = separated_list1(tag("\n\n"), parse_passport).parse(input)?;
         Ok((input, lo))
     }
     pub fn parse_passport2<'a>(input: &'a str) -> IResult<&'a str, Vec<Field>> {
-        let (input, lo) = separated_list1(satisfy(|c| c.is_whitespace()), parse_field2)(input)?;
+        let (input, lo) = separated_list1(satisfy(|c| c.is_whitespace()), parse_field2).parse(input)?;
         Ok((input, lo))
     }
 
     pub fn parse_passports2<'a>(input: &'a str) -> IResult<&'a str, Vec<Vec<Field>>> {
-        let (input, lo) = separated_list1(tag("\n\n"), parse_passport2)(input)?;
+        let (input, lo) = separated_list1(tag("\n\n"), parse_passport2).parse(input)?;
         Ok((input, lo))
     }
 

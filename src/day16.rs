@@ -121,39 +121,39 @@ mod parsing {
         bytes::complete::{tag, take_while1},
         combinator::map_res,
         multi::separated_list1,
-        IResult,
+        IResult, Parser,
     };
     fn parse_number(input: &str) -> IResult<&str, usize> {
         map_res(take_while1(|c: char| c.is_ascii_digit()), |input: &str| {
             input.parse()
-        })(input)
+        }).parse(input)
     }
     fn parse_range(input: &str) -> IResult<&str, (usize, usize)> {
         let (input, a) = parse_number(input)?;
-        let (input, _) = tag("-")(input)?;
+        let (input, _) = tag("-").parse(input)?;
         let (input, b) = parse_number(input)?;
         Ok((input, (a, b)))
     }
     fn parse_field_line<'a>(input: &'a str) -> IResult<&'a str, Tavara> {
-        let (input, _) = take_while1(|c: char| c.is_alphabetic() || c == ' ')(input)?;
-        let (input, _) = tag(": ")(input)?;
+        let (input, _) = take_while1(|c: char| c.is_alphabetic() || c == ' ').parse(input)?;
+        let (input, _) = tag(": ").parse(input)?;
         let (input, r1) = parse_range(input)?;
-        let (input, _) = tag(" or ")(input)?;
+        let (input, _) = tag(" or ").parse(input)?;
         let (input, r2) = parse_range(input)?;
 
         Ok((input, Tavara { r1, r2 }))
     }
     fn parse_ticket(input: &str) -> IResult<&str, Vec<usize>> {
-        let (input, v) = separated_list1(tag(","), parse_number)(input)?;
+        let (input, v) = separated_list1(tag(","), parse_number).parse(input)?;
         Ok((input, v))
     }
 
     pub fn parse_file(input: &str) -> IResult<&str, Stuff> {
-        let (input, fields) = separated_list1(tag("\n"), parse_field_line)(input)?;
-        let (input, _) = tag("\n\nyour ticket:\n")(input)?;
+        let (input, fields) = separated_list1(tag("\n"), parse_field_line).parse(input)?;
+        let (input, _) = tag("\n\nyour ticket:\n").parse(input)?;
         let (input, my_ticket) = parse_ticket(input)?;
-        let (input, _) = tag("\n\nnearby tickets:\n")(input)?;
-        let (input, nearby_tickets) = separated_list1(tag("\n"), parse_ticket)(input)?;
+        let (input, _) = tag("\n\nnearby tickets:\n").parse(input)?;
+        let (input, nearby_tickets) = separated_list1(tag("\n"), parse_ticket).parse(input)?;
         Ok((
             input,
             Stuff {

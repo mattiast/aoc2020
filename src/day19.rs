@@ -87,21 +87,43 @@ pub fn part2() -> io::Result<i64> {
 
 mod parsing {
     use super::{Rule, Token};
-    use nom::bytes::complete::tag;
+    use nom::branch::alt;
+    use nom::bytes::complete::{tag, take_while1};
     use nom::combinator::map_res;
-    use nom::{alt, bytes::complete::take_while1, do_parse, named, separated_list1, tag, IResult};
+    use nom::multi::separated_list1;
+    use nom::{IResult, Parser};
     fn parse_number(input: &str) -> IResult<&str, usize> {
         map_res(take_while1(|c: char| c.is_ascii_digit()), |input: &str| {
             input.parse()
-        })(input)
+        }).parse(input)
     }
-    named!(r<&str, Token>, do_parse!(x1: parse_number >> (Token::Rule(x1))));
-    named!(a<&str, Token>, do_parse!(x: tag!("\"a\"") >> (Token::A)));
-    named!(b<&str, Token>, do_parse!(x: tag!("\"b\"") >> (Token::B)));
-    named!(token<&str, Token>, alt!(r | a | b));
-    named!(term<&str, Vec<Token>>, separated_list1!(tag(" "), token));
-    named!(pat<&str, Vec<Vec<Token>>>, separated_list1!(tag(" | "), term));
-    named!(pub line<&str, Rule>, do_parse!(number: parse_number >> tag!(": ") >> pat: pat >> (Rule { number, pat })));
+    fn r(input: &str) -> IResult<&str, Token> {
+        let (input, x1) = parse_number(input)?;
+        Ok((input, Token::Rule(x1)))
+    }
+    fn a(input: &str) -> IResult<&str, Token> {
+        let (input, _) = tag("\"a\"").parse(input)?;
+        Ok((input, Token::A))
+    }
+    fn b(input: &str) -> IResult<&str, Token> {
+        let (input, _) = tag("\"b\"").parse(input)?;
+        Ok((input, Token::B))
+    }
+    fn token(input: &str) -> IResult<&str, Token> {
+        alt((r, a, b)).parse(input)
+    }
+    fn term(input: &str) -> IResult<&str, Vec<Token>> {
+        separated_list1(tag(" "), token).parse(input)
+    }
+    fn pat(input: &str) -> IResult<&str, Vec<Vec<Token>>> {
+        separated_list1(tag(" | "), term).parse(input)
+    }
+    pub fn line(input: &str) -> IResult<&str, Rule> {
+        let (input, number) = parse_number(input)?;
+        let (input, _) = tag(": ").parse(input)?;
+        let (input, pat) = pat(input)?;
+        Ok((input, Rule { number, pat }))
+    }
 
     #[test]
     fn test_token() {

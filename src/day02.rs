@@ -54,22 +54,22 @@ mod parsing {
         bytes::complete::{tag, take_while1},
         character::complete::satisfy,
         combinator::map_res,
-        IResult,
+        IResult, Parser,
     };
     fn parse_number(input: &str) -> IResult<&str, usize> {
         map_res(take_while1(|c: char| c.is_ascii_digit()), |input: &str| {
             input.parse()
-        })(input)
+        }).parse(input)
     }
 
     pub fn parse_password<'a>(input: &'a str) -> IResult<&'a str, Password<'a>> {
         let (input, lo) = parse_number(input)?;
-        let (input, _) = tag("-")(input)?;
+        let (input, _) = tag("-").parse(input)?;
         let (input, hi) = parse_number(input)?;
-        let (input, _) = tag(" ")(input)?;
-        let (input, c) = satisfy(|c| c.is_alphabetic())(input)?;
-        let (input, _) = tag(": ")(input)?;
-        let (input, passu) = take_while1(|c: char| c.is_alphabetic())(input)?;
+        let (input, _) = tag(" ").parse(input)?;
+        let (input, c) = satisfy(|c| c.is_alphabetic()).parse(input)?;
+        let (input, _) = tag(": ").parse(input)?;
+        let (input, passu) = take_while1(|c: char| c.is_alphabetic()).parse(input)?;
         Ok((input, Password { lo, hi, c, passu }))
     }
 }

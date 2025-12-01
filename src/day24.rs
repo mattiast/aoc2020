@@ -89,15 +89,40 @@ fn add_steps(ts: &[Tile]) -> Tile {
 
 mod parsing {
     use super::Tile;
-    use nom::{alt, complete, do_parse, many1, named, tag};
+    use nom::branch::alt;
+    use nom::bytes::complete::tag;
+    use nom::multi::many1;
+    use nom::{IResult, Parser};
 
-    named!(e<&str, Tile>, do_parse!(complete!(tag!("e")) >> ((1,-1,0))));
-    named!(w<&str, Tile>, do_parse!(complete!(tag!("w")) >> ((-1,1,0))));
-    named!(nw<&str, Tile>, do_parse!(complete!(tag!("nw")) >> ((0,1,-1))));
-    named!(ne<&str, Tile>, do_parse!(complete!(tag!("se")) >> ((0,-1,1))));
-    named!(sw<&str, Tile>, do_parse!(complete!(tag!("sw")) >> ((-1,0,1))));
-    named!(se<&str, Tile>, do_parse!(complete!(tag!("ne")) >> ((1,0,-1))));
+    fn e(input: &str) -> IResult<&str, Tile> {
+        let (input, _) = tag("e").parse(input)?;
+        Ok((input, (1, -1, 0)))
+    }
+    fn w(input: &str) -> IResult<&str, Tile> {
+        let (input, _) = tag("w").parse(input)?;
+        Ok((input, (-1, 1, 0)))
+    }
+    fn nw(input: &str) -> IResult<&str, Tile> {
+        let (input, _) = tag("nw").parse(input)?;
+        Ok((input, (0, 1, -1)))
+    }
+    fn ne(input: &str) -> IResult<&str, Tile> {
+        let (input, _) = tag("se").parse(input)?;
+        Ok((input, (0, -1, 1)))
+    }
+    fn sw(input: &str) -> IResult<&str, Tile> {
+        let (input, _) = tag("sw").parse(input)?;
+        Ok((input, (-1, 0, 1)))
+    }
+    fn se(input: &str) -> IResult<&str, Tile> {
+        let (input, _) = tag("ne").parse(input)?;
+        Ok((input, (1, 0, -1)))
+    }
 
-    named!(step<&str, Tile>, alt!(e | w | nw | ne | sw | se));
-    named!(pub tile<&str, Vec<Tile>>, many1!(step));
+    fn step(input: &str) -> IResult<&str, Tile> {
+        alt((e, w, nw, ne, sw, se)).parse(input)
+    }
+    pub fn tile(input: &str) -> IResult<&str, Vec<Tile>> {
+        many1(step).parse(input)
+    }
 }
