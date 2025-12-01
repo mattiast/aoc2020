@@ -12,6 +12,25 @@ fn use_mask(m: Mask, x: u64) -> u64 {
     (m.xmask & x) + m.value
 }
 
+fn all_addresses(m: Mask, addr: u64) -> Vec<u64> {
+    let base_addr = (addr | m.value) & !m.xmask;
+    let num_addrs = 1u64 << m.xmask.count_ones();
+
+    let mut addresses = Vec::with_capacity(num_addrs as usize);
+    addresses.push(base_addr);
+    for i in 0..36 {
+        let bit = 1u64 << i;
+        if (m.xmask & bit) != 0 {
+            let mut new_addresses = vec![];
+            for &a in &addresses {
+                new_addresses.push(a | bit);
+            }
+            addresses.extend(new_addresses);
+        }
+    }
+    addresses
+}
+
 #[derive(Debug, PartialEq)]
 pub enum Statement {
     Mask(Mask),
@@ -37,7 +56,6 @@ pub fn part1() -> io::Result<i64> {
     let mut memory = HashMap::<u64, u64>::new();
 
     for stmt in ss {
-        //
         match stmt {
             Statement::Mem { addr, value } => {
                 memory.insert(addr, use_mask(mask, value));
@@ -50,7 +68,23 @@ pub fn part1() -> io::Result<i64> {
     Ok(memory.into_iter().map(|x| x.1).sum::<u64>() as i64)
 }
 pub fn part2() -> io::Result<i64> {
-    todo!()
+    let ss = read_input()?;
+    let mut mask = Mask { xmask: 0, value: 0 };
+    let mut memory = HashMap::<u64, u64>::new();
+    for stmt in ss {
+        match stmt {
+            Statement::Mem { addr, value } => {
+                let addrs = all_addresses(mask, addr);
+                for a in addrs {
+                    memory.insert(a, value);
+                }
+            }
+            Statement::Mask(new_mask) => {
+                mask = new_mask;
+            }
+        }
+    }
+    Ok(memory.into_iter().map(|x| x.1).sum::<u64>() as i64)
 }
 
 mod parsing {
@@ -66,7 +100,8 @@ mod parsing {
     fn parse_number(input: &str) -> IResult<&str, u64> {
         map_res(take_while1(|c: char| c.is_ascii_digit()), |input: &str| {
             input.parse()
-        }).parse(input)
+        })
+        .parse(input)
     }
     fn xbit(input: &str) -> IResult<&str, Option<bool>> {
         let (input, x) = satisfy(|c| c == 'X' || c == '0' || c == '1').parse(input)?;
