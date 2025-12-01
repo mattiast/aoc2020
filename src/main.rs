@@ -13,7 +13,6 @@ mod day15;
 mod day16;
 mod day17;
 mod day18;
-mod day19;
 mod day22;
 mod day23;
 mod day24;
@@ -84,10 +83,6 @@ enum Opt {
         #[structopt(long)]
         toka: bool,
     },
-    Day19 {
-        #[structopt(long)]
-        toka: bool,
-    },
     Day22 {
         #[structopt(long)]
         toka: bool,
@@ -139,8 +134,6 @@ fn main() -> Result<()> {
         Opt::Day17 { toka: true } => day17::part2()?,
         Opt::Day18 { toka: false } => day18::part1()?,
         Opt::Day18 { toka: true } => day18::part2()?,
-        Opt::Day19 { toka: false } => day19::part1()?,
-        Opt::Day19 { toka: true } => day19::part2()?,
         Opt::Day22 { toka: false } => day22::part1()?,
         Opt::Day22 { toka: true } => day22::part2()?,
         Opt::Day23 { toka: false } => day23::part1()?,
